@@ -185,7 +185,7 @@ public final class InterfaceInfo {
         String signature = realName + method.desc;
 
         if (!this.methods.contains(signature)) {
-            String remapped = context.getEnvironment().getRemappers().mapMethodName(context.getTargetClassRef(), realName, method.desc);
+            String remapped = context.getEnvironment().getRemappers().mapMethodName(this.iface.getInternalName(), realName, method.desc);
             if (!remapped.equals(realName)) {
                 if (!this.methods.contains(remapped + method.desc)) {
                     throw new InvalidMixinException(this.mixin, String.format("Remapped method %s (original %s) does not exist in target interface %s", remapped, realName, this.getName()));
