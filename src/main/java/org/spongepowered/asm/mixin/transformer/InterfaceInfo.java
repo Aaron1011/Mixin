@@ -24,9 +24,6 @@
  */
 package org.spongepowered.asm.mixin.transformer;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.lib.Type;
 import org.spongepowered.asm.lib.tree.AnnotationNode;
@@ -38,14 +35,17 @@ import org.spongepowered.asm.mixin.transformer.meta.MixinRenamed;
 import org.spongepowered.asm.mixin.transformer.throwables.InvalidMixinException;
 import org.spongepowered.asm.util.Annotations;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Information about an interface being runtime-patched onto a mixin target
  * class, see {@link org.spongepowered.asm.mixin.Implements Implements}
  */
 public final class InterfaceInfo {
-    
+
     /**
-     * Parent mixin 
+     * Parent mixin
      */
     private final MixinInfo mixin;
 
@@ -54,18 +54,18 @@ public final class InterfaceInfo {
      * the target interface
      */
     private final String prefix;
-    
+
     /**
      * Interface being patched
      */
     private final Type iface;
-    
+
     /**
      * True if all methods implementing this interface should be treated as
      * unique
      */
     private final boolean unique;
-    
+
     /**
      * Method signatures in the interface, lazy loaded
      */
@@ -73,7 +73,7 @@ public final class InterfaceInfo {
 
     /**
      * Make with the new thing already
-     * 
+     *
      * @param mixin Parent mixin
      * @param prefix Method prefix
      * @param iface Interface to load
@@ -82,13 +82,13 @@ public final class InterfaceInfo {
         if (prefix == null || prefix.length() < 2 || !prefix.endsWith("$")) {
             throw new InvalidMixinException(mixin, String.format("Prefix %s for iface %s is not valid", prefix, iface.toString()));
         }
-        
+
         this.mixin = mixin;
         this.prefix = prefix;
         this.iface = iface;
         this.unique = unique;
     }
-    
+
     /**
      * Lazy-loaded methods collection initialiser
      */
@@ -96,20 +96,20 @@ public final class InterfaceInfo {
         this.methods = new HashSet<String>();
         this.readInterface(this.iface.getInternalName());
     }
-    
+
     /**
      * Reads an interface and its super-interfaces and gathers method names in
      * to the local "methods" collection
-     * 
+     *
      * @param ifaceName Name of the interface to read
      */
     private void readInterface(String ifaceName) {
         ClassInfo interfaceInfo = ClassInfo.forName(ifaceName);
-        
+
         for (Method ifaceMethod : interfaceInfo.getMethods()) {
             this.methods.add(ifaceMethod.toString());
         }
-        
+
         for (String superIface : interfaceInfo.getInterfaces()) {
             this.readInterface(superIface);
         }
@@ -117,25 +117,25 @@ public final class InterfaceInfo {
 
     /**
      * Get the prefix string (non null)
-     * 
+     *
      * @return the prefix
      */
     public String getPrefix() {
         return this.prefix;
     }
-    
+
     /**
      * Get the interface type
-     * 
+     *
      * @return interface type
      */
     public Type getIface() {
         return this.iface;
     }
-    
+
     /**
      * Get the internal name of the interface
-     * 
+     *
      * @return the internal name for the interface
      */
     public String getName() {
@@ -144,16 +144,16 @@ public final class InterfaceInfo {
 
     /**
      * Get the internal name of the interface
-     * 
+     *
      * @return the internal name for the interface
      */
     public String getInternalName() {
         return this.iface.getInternalName();
     }
-    
+
     /**
      * Get whether all methods for this interface should be treated as unique
-     * 
+     *
      * @return true to treat all member methods as unique
      */
     public boolean isUnique() {
@@ -165,33 +165,40 @@ public final class InterfaceInfo {
      * prefix is found then we verify that the method exists in the target
      * interface and throw our teddies out of the pram if that's not the case
      * (replacement behaviour for {@link Override} essentially.
-     * 
+     *
      * @param method Method to rename
      * @return true if the method was remapped
      */
-    public boolean renameMethod(MethodNode method) {
+    public boolean renameMethod(MethodNode method, MixinTargetContext context) {
         if (this.methods == null) {
             this.initMethods();
         }
-        
+
         if (!method.name.startsWith(this.prefix)) {
             if (this.methods.contains(method.name + method.desc)) {
                 this.decorateUniqueMethod(method);
             }
             return false;
         }
-        
+
         String realName = method.name.substring(this.prefix.length());
         String signature = realName + method.desc;
-        
+
         if (!this.methods.contains(signature)) {
-            throw new InvalidMixinException(this.mixin, String.format("%s does not exist in target interface %s", realName, this.getName()));
+            String remapped = context.getEnvironment().getRemappers().mapMethodName(context.getTargetClassRef(), realName, method.desc);
+            if (!remapped.equals(realName)) {
+                if (!this.methods.contains(remapped + method.desc)) {
+                    throw new InvalidMixinException(this.mixin, String.format("Remapped method %s (original %s) does not exist in target interface %s", remapped, realName, this.getName()));
+                }
+            } else {
+                throw new InvalidMixinException(this.mixin, String.format("%s does not exist in target interface %s", realName, this.getName()));
+            }
         }
-        
+
         if ((method.access & Opcodes.ACC_PUBLIC) == 0) {
             throw new InvalidMixinException(this.mixin, String.format("%s cannot implement %s because it is not visible", realName, this.getName()));
         }
-        
+
         Annotations.setVisible(method, MixinRenamed.class, "originalName", method.name, "isInterfaceMember", true);
         this.decorateUniqueMethod(method);
         method.name = realName;
@@ -201,14 +208,14 @@ public final class InterfaceInfo {
     /**
      * Decorate the target method with {@link Unique} if the interface is marked
      * as unique
-     * 
+     *
      * @param method method to decorate
      */
     private void decorateUniqueMethod(MethodNode method) {
         if (!this.unique) {
             return;
         }
-        
+
         if (Annotations.getVisible(method, Unique.class) == null) {
             Annotations.setVisible(method, Unique.class);
             this.mixin.getClassInfo().findMethod(method).setUnique(true);
@@ -218,7 +225,7 @@ public final class InterfaceInfo {
     /**
      * Convert an {@link Interface} annotation node into an
      * {@link InterfaceInfo}
-     * 
+     *
      * @param mixin Parent mixin
      * @param node Annotation node to process
      * @return parsed InterfaceInfo object
@@ -227,11 +234,11 @@ public final class InterfaceInfo {
         String prefix = Annotations.<String>getValue(node, "prefix");
         Type iface = Annotations.<Type>getValue(node, "iface");
         Boolean unique = Annotations.<Boolean>getValue(node, "unique");
-        
+
         if (prefix == null || iface == null) {
             throw new InvalidMixinException(mixin, String.format("@Interface annotation on %s is missing a required parameter", mixin));
         }
-        
+
         return new InterfaceInfo(mixin, prefix, iface, unique != null && unique.booleanValue());
     }
 
