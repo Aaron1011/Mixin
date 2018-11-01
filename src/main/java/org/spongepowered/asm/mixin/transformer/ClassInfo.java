@@ -24,15 +24,8 @@
  */
 package org.spongepowered.asm.mixin.transformer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,14 +46,21 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.transformer.ClassInfo.Member.Type;
 import org.spongepowered.asm.mixin.transformer.MixinInfo.MixinClassNode;
+import org.spongepowered.asm.obfuscation.RemapperChain;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.Annotations;
 import org.spongepowered.asm.util.ClassSignature;
 import org.spongepowered.asm.util.perf.Profiler;
 import org.spongepowered.asm.util.perf.Profiler.Section;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Information about a class, used as a way of keeping track of class hierarchy
@@ -72,23 +72,23 @@ public final class ClassInfo {
     public static final int INCLUDE_PRIVATE = Opcodes.ACC_PRIVATE;
     public static final int INCLUDE_STATIC = Opcodes.ACC_STATIC;
     public static final int INCLUDE_ALL = ClassInfo.INCLUDE_PRIVATE | ClassInfo.INCLUDE_STATIC;
-    
+
     /**
      * Search type for the findInHierarchy methods, replaces a boolean flag
      * which made calling code difficult to read
      */
     public static enum SearchType {
-        
+
         /**
          * Include this class when searching in the hierarchy
          */
         ALL_CLASSES,
-        
+
         /**
-         * Only walk the superclasses when searching the hierarchy 
+         * Only walk the superclasses when searching the hierarchy
          */
         SUPER_CLASSES_ONLY
-        
+
     }
 
     /**
@@ -132,7 +132,7 @@ public final class ClassInfo {
         private final Traversal next;
 
         private final boolean traverse;
-        
+
         private final SearchType searchType;
 
         private Traversal(Traversal next, boolean traverse, SearchType searchType) {
@@ -154,7 +154,7 @@ public final class ClassInfo {
         public boolean canTraverse() {
             return this.traverse;
         }
-        
+
         public SearchType getSearchType() {
             return this.searchType;
         }
@@ -248,15 +248,15 @@ public final class ClassInfo {
          * if the member has been renamed
          */
         private String currentName;
-        
+
         /**
          * Current descriptor of the member, may be different from
          * {@link #memberDesc} if the member has been remapped
          */
         private String currentDesc;
-        
+
         /**
-         * True if this member is decorated with {@link Final} 
+         * True if this member is decorated with {@link Final}
          */
         private boolean decoratedFinal;
 
@@ -306,7 +306,7 @@ public final class ClassInfo {
         public String getDesc() {
             return this.currentDesc;
         }
-        
+
         public boolean isInjected() {
             return this.isInjected;
         }
@@ -318,7 +318,7 @@ public final class ClassInfo {
         public boolean isRemapped() {
             return !this.currentDesc.equals(this.memberDesc);
         }
-        
+
         public boolean isPrivate() {
             return (this.modifiers & Opcodes.ACC_PRIVATE) != 0;
         }
@@ -334,15 +334,15 @@ public final class ClassInfo {
         public boolean isFinal() {
             return (this.modifiers & Opcodes.ACC_FINAL) != 0;
         }
-        
+
         public boolean isSynthetic() {
             return (this.modifiers & Opcodes.ACC_SYNTHETIC) != 0;
         }
-        
+
         public boolean isUnique() {
             return this.unique;
         }
-        
+
         public void setUnique(boolean unique) {
             this.unique = unique;
         }
@@ -350,7 +350,7 @@ public final class ClassInfo {
         public boolean isDecoratedFinal() {
             return this.decoratedFinal;
         }
-        
+
         public boolean isDecoratedMutable() {
             return this.decoratedMutable;
         }
@@ -359,7 +359,7 @@ public final class ClassInfo {
             this.decoratedFinal = decoratedFinal;
             this.decoratedMutable = decoratedMutable;
         }
-            
+
         public boolean matchesFlags(int flags) {
             return (((~this.modifiers | (flags & ClassInfo.INCLUDE_PRIVATE)) & ClassInfo.INCLUDE_PRIVATE) != 0
                  && ((~this.modifiers | (flags & ClassInfo.INCLUDE_STATIC)) & ClassInfo.INCLUDE_STATIC) != 0);
@@ -367,7 +367,7 @@ public final class ClassInfo {
 
         // Abstract because this has to be static in order to contain the enum
         public abstract ClassInfo getOwner();
-        
+
         public ClassInfo getImplementor() {
             return this.getOwner();
         }
@@ -384,7 +384,7 @@ public final class ClassInfo {
             this.currentName = name;
             return name;
         }
-        
+
         public String remapTo(String desc) {
             this.currentDesc = desc;
             return desc;
@@ -419,7 +419,7 @@ public final class ClassInfo {
         protected String getDisplayFormat() {
             return "%s%s";
         }
-        
+
     }
 
     /**
@@ -428,9 +428,9 @@ public final class ClassInfo {
     public class Method extends Member {
 
         private final List<FrameData> frames;
-        
+
         private boolean isAccessor;
-        
+
         public Method(Member member) {
             super(member);
             this.frames = member instanceof Method ? ((Method)member).frames : null;
@@ -480,7 +480,7 @@ public final class ClassInfo {
         public List<FrameData> getFrames() {
             return this.frames;
         }
-        
+
         @Override
         public ClassInfo getOwner() {
             return ClassInfo.this;
@@ -498,32 +498,32 @@ public final class ClassInfo {
 
             return super.equals(obj);
         }
-        
+
     }
-    
+
     /**
      * A method resolved in an interface <em>via</em> a class, return the member
      * wrapped so that the implementing class can be retrieved.
      */
     public class InterfaceMethod extends Method {
-        
+
         private final ClassInfo owner;
 
         public InterfaceMethod(Member member) {
             super(member);
             this.owner = member.getOwner();
         }
-        
+
         @Override
         public ClassInfo getOwner() {
             return this.owner;
         }
-        
+
         @Override
         public ClassInfo getImplementor() {
             return ClassInfo.this;
         }
-        
+
     }
 
     /**
@@ -541,9 +541,9 @@ public final class ClassInfo {
 
         public Field(FieldNode field, boolean injected) {
             super(Type.FIELD, field.name, field.desc, field.access, injected);
-            
+
             this.setUnique(Annotations.getVisible(field, Unique.class) != null);
-            
+
             if (Annotations.getVisible(field, Shadow.class) != null) {
                 boolean decoratedFinal = Annotations.getVisible(field, Final.class) != null;
                 boolean decoratedMutable = Annotations.getVisible(field, Mutable.class) != null;
@@ -572,7 +572,7 @@ public final class ClassInfo {
 
             return super.equals(obj);
         }
-        
+
         @Override
         protected String getDisplayFormat() {
             return "%s:%s";
@@ -580,7 +580,7 @@ public final class ClassInfo {
     }
 
     private static final Logger logger = LogManager.getLogger("mixin");
-    
+
     private static final Profiler profiler = MixinEnvironment.getProfiler();
 
     private static final String JAVA_LANG_OBJECT = "java/lang/Object";
@@ -648,9 +648,9 @@ public final class ClassInfo {
      * Mixin info if this class is a mixin itself
      */
     private final MixinInfo mixin;
-    
+
     private final MethodMapper methodMapper;
-    
+
     /**
      * True if this is a mixin rather than a class
      */
@@ -675,7 +675,7 @@ public final class ClassInfo {
      * Outer class reference, not initialised until required
      */
     private ClassInfo outerClass;
-    
+
     /**
      * Class signature, lazy-loaded where possible
      */
@@ -749,8 +749,8 @@ public final class ClassInfo {
                         }
                     }
                 }
-
-                this.fields.add(new Field(field, this.isMixin));
+                Field newField = new Field(field, this.isMixin);
+                this.fields.add(newField);
             }
 
             this.isProbablyStatic = isProbablyStatic;
@@ -759,6 +759,38 @@ public final class ClassInfo {
             this.signature = ClassSignature.ofLazy(classNode);
         } finally {
             timer.end();
+        }
+    }
+
+    // This method works around a weird deobuscation issue:
+    // If 'mixin.env.remapRefMap=true' is set, Mixin will remap shadow
+    // fields in MixinPreProcessorStandard#attachFields.
+    // Normally, this is fine, and allows other references to the shadow field (in other mixins)
+    // to be remapped in MixinPreProcessorStandard#transformField.
+    //
+    // However, this doesn't work if a subclass is loaded before a superclass
+    // (e.g. EntityPlayer being loaded before Entity). Since the mixins for the parent
+    // class (e.g. Entity) haven't yet run, MixinPreProcessorStandard#attachFields will not
+    // yet have been called. This results in mixins targeting the subclass (e.g. EntityPlayer)
+    // failing to remap their reference to the field (e.g. MixinEntity.world)
+    //
+    // The solution is to attempt to remap fields as early as possible - that is,
+    // right when the ClassInfo is first constructed. This allows the subclass to properly
+    // remap field references to an as-of-yet unloaded superclass.
+    void initializeFields() {
+        if (!this.isMixin) {
+            throw new IllegalStateException("Tried to call initializeFields on non-Mixin ClassInfo " + this);
+        }
+        if (this.mixin.getTargets().size() != 1) {
+            return;
+        }
+        for (Field field: this.fields) {
+            // Workaround for deobfuscating when classes are loaded in a weird order
+            RemapperChain remapperChain = MixinEnvironment.getCurrentEnvironment().getRemappers();
+            String remappedName = remapperChain.mapFieldName(this.mixin.getTargets().get(0).getName(), field.getOriginalName(), field.getOriginalDesc());
+            if (!remappedName.equals(field.getOriginalName())) {
+                field.renameTo(remappedName);
+            }
         }
     }
 
@@ -854,7 +886,7 @@ public final class ClassInfo {
     public String toString() {
         return this.name;
     }
-    
+
     public MethodMapper getMethodMapper() {
         return this.methodMapper;
     }
@@ -869,7 +901,7 @@ public final class ClassInfo {
     public String getName() {
         return this.name;
     }
-    
+
     /**
      * Get the class name (java format)
      */
@@ -914,10 +946,10 @@ public final class ClassInfo {
 
         return this.outerClass;
     }
-    
+
     /**
      * Return the class signature
-     * 
+     *
      * @return signature as a {@link ClassSignature} instance
      */
     public ClassSignature getSignature() {
@@ -1058,7 +1090,7 @@ public final class ClassInfo {
     public boolean hasSuperClass(ClassInfo superClass, Traversal traversal) {
         return this.hasSuperClass(superClass, traversal, false);
     }
-    
+
     /**
      * Test whether this class has the specified superclass in its hierarchy
      *
@@ -1072,7 +1104,7 @@ public final class ClassInfo {
         if (ClassInfo.OBJECT == superClass) {
             return true;
         }
-        
+
         return this.findSuperClass(superClass.name, traversal, includeInterfaces) != null;
     }
 
@@ -1098,7 +1130,7 @@ public final class ClassInfo {
     public ClassInfo findSuperClass(String superClass, Traversal traversal) {
         return this.findSuperClass(superClass, traversal, false, new HashSet<String>());
     }
-    
+
     /**
      * Search for the specified superclass in this class's hierarchy. If found
      * returns the ClassInfo, otherwise returns null
@@ -1112,10 +1144,10 @@ public final class ClassInfo {
         if (ClassInfo.OBJECT.name.equals(superClass)) {
             return null;
         }
-        
+
         return this.findSuperClass(superClass, traversal, includeInterfaces, new HashSet<String>());
     }
-    
+
     private ClassInfo findSuperClass(String superClass, Traversal traversal, boolean includeInterfaces, Set<String> traversed) {
         ClassInfo superClassInfo = this.getSuperClass();
         if (superClassInfo != null) {
@@ -1130,14 +1162,14 @@ public final class ClassInfo {
                 }
             }
         }
-        
+
         if (includeInterfaces) {
             ClassInfo iface = this.findInterface(superClass);
             if (iface != null) {
                 return iface;
             }
         }
-        
+
         if (traversal.canTraverse()) {
             for (MixinInfo mixin : this.mixins) {
                 String mixinClassName = mixin.getClassName();
@@ -1475,7 +1507,7 @@ public final class ClassInfo {
                 }
             }
         }
-        
+
         if (type == Type.METHOD && (this.isInterface || MixinEnvironment.getCompatibilityLevel().supportsMethodsInInterfaces())) {
             for (String implemented : this.interfaces) {
                 ClassInfo iface = ClassInfo.forName(implemented);
@@ -1709,7 +1741,7 @@ public final class ClassInfo {
     /**
      * ASM logic applied via ClassInfo, returns first common superclass of
      * classes specified by <tt>type1</tt> and <tt>type2</tt>.
-     * 
+     *
      * @param type1 First type
      * @param type2 Second type
      * @return common superclass info
@@ -1720,11 +1752,11 @@ public final class ClassInfo {
         }
         return ClassInfo.getCommonSuperClass(ClassInfo.forName(type1), ClassInfo.forName(type2));
     }
-    
+
     /**
      * ASM logic applied via ClassInfo, returns first common superclass of
      * classes specified by <tt>type1</tt> and <tt>type2</tt>.
-     * 
+     *
      * @param type1 First type
      * @param type2 Second type
      * @return common superclass info
@@ -1740,7 +1772,7 @@ public final class ClassInfo {
     /**
      * ASM logic applied via ClassInfo, returns first common superclass of
      * classes specified by <tt>type1</tt> and <tt>type2</tt>.
-     * 
+     *
      * @param type1 First type
      * @param type2 Second type
      * @return common superclass info
@@ -1752,7 +1784,7 @@ public final class ClassInfo {
     /**
      * ASM logic applied via ClassInfo, returns first common superclass of
      * classes specified by <tt>type1</tt> and <tt>type2</tt>.
-     * 
+     *
      * @param type1 First type
      * @param type2 Second type
      * @return common superclass info
@@ -1763,11 +1795,11 @@ public final class ClassInfo {
         }
         return ClassInfo.getCommonSuperClassOrInterface(ClassInfo.forName(type1), ClassInfo.forName(type2));
     }
-    
+
     /**
      * ASM logic applied via ClassInfo, returns first common superclass of
      * classes specified by <tt>type1</tt> and <tt>type2</tt>.
-     * 
+     *
      * @param type1 First type
      * @param type2 Second type
      * @return common superclass info
@@ -1783,7 +1815,7 @@ public final class ClassInfo {
     /**
      * ASM logic applied via ClassInfo, returns first common superclass or
      * interface of classes specified by <tt>type1</tt> and <tt>type2</tt>.
-     * 
+     *
      * @param type1 First type
      * @param type2 Second type
      * @return common superclass info
@@ -1800,14 +1832,14 @@ public final class ClassInfo {
         } else if (type1.isInterface() || type2.isInterface()) {
             return ClassInfo.OBJECT;
         }
-        
+
         do {
             type1 = type1.getSuperClass();
             if (type1 == null) {
                 return ClassInfo.OBJECT;
             }
         } while (!type2.hasSuperClass(type1, Traversal.NONE, includeInterfaces));
-        
+
         return type1;
     }
 
