@@ -784,12 +784,21 @@ public final class ClassInfo {
         if (this.mixin.getTargets().size() != 1) {
             return;
         }
+
+        // Workaround for deobfuscating when subclasses are loaded before parent classes
+        RemapperChain remapperChain = MixinEnvironment.getCurrentEnvironment().getRemappers();
+
         for (Field field: this.fields) {
-            // Workaround for deobfuscating when classes are loaded in a weird order
-            RemapperChain remapperChain = MixinEnvironment.getCurrentEnvironment().getRemappers();
             String remappedName = remapperChain.mapFieldName(this.mixin.getTargets().get(0).getName(), field.getOriginalName(), field.getOriginalDesc());
             if (!remappedName.equals(field.getOriginalName())) {
                 field.renameTo(remappedName);
+            }
+        }
+
+        for (Method method: this.methods) {
+            String remappedName = remapperChain.mapMethodName(this.mixin.getTargets().get(0).getName(), method.getOriginalName(), method.getOriginalDesc());
+            if (!remappedName.equals(method.getOriginalName())) {
+                method.renameTo(remappedName);
             }
         }
     }
