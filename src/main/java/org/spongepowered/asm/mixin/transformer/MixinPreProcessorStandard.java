@@ -380,7 +380,7 @@ class MixinPreProcessorStandard {
         MethodNode target = context.findMethod(mixinMethod, annotation);
         if (target == null) {
             if (type.isOverwrite) {
-                return false;
+                MixinPreProcessorStandard.logger.warn("Attempting to remap @Overwrite method " + method);
             }
             target = context.findRemappedMethod(mixinMethod);
             if (target == null) {
