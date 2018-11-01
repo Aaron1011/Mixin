@@ -475,3 +475,5 @@ install.repositories.mavenInstaller.pom {
         }
     }
 }
+
+install.dependsOn(build)
