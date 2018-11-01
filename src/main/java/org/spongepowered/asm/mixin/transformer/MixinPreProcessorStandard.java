@@ -698,7 +698,7 @@ class MixinPreProcessorStandard {
             throw new RuntimeException(new ClassNotFoundException(fieldNode.owner.replace('/', '.')));
         }
 
-        Field field = owner.findField(fieldNode, ClassInfo.INCLUDE_PRIVATE);
+        Field field = owner.findFieldInHierarchy(fieldNode.name, fieldNode.desc, SearchType.ALL_CLASSES, ClassInfo.Traversal.ALL, ClassInfo.INCLUDE_PRIVATE);
         metaTimer.end();
 
         if (field != null && field.isRenamed()) {
